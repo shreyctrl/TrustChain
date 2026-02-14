@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom'; // Changed to HashRouter for GitHub Pages
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from './utils/contractConfig';
 import './App.css';
@@ -10,6 +10,7 @@ function App() {
   const [userName, setUserName] = useState("");
   const [isRegistered, setIsRegistered] = useState(false);
 
+  // --- WALLET CONNECTION ---
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
@@ -22,6 +23,7 @@ function App() {
         setAccount(address);
         setContract(tempContract);
         
+        // Check Registration
         try {
           const userData = await tempContract.getUser(address);
           if (userData[1]) {
@@ -30,15 +32,21 @@ function App() {
           } else {
             setIsRegistered(false);
           }
-        } catch (err) { console.error(err); }
-      } catch (error) { alert("Connection failed: " + error.message); }
-    } else { alert("Please install MetaMask!"); }
+        } catch (err) { console.error("Error fetching user:", err); }
+
+      } catch (error) {
+        alert("Connection failed: " + error.message);
+      }
+    } else {
+      alert("Please install MetaMask!");
+    }
   };
 
   return (
     <Router>
       <div className="app-wrapper">
         <NavBar account={account} userName={userName} connectWallet={connectWallet} />
+        
         <Routes>
           <Route path="/" element={<LandingPage account={account} />} />
           <Route path="/profile" element={
@@ -105,17 +113,16 @@ const ProfilePage = ({ account, contract, isRegistered, setIsRegistered, setUser
   const [donated, setDonated] = useState("0");
   const [received, setReceived] = useState("0");
   const [myTx, setMyTx] = useState([]);
-  const [balance, setBalance] = useState("0.00"); // NEW: State for balance
+  const [balance, setBalance] = useState("0.00");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (contract && account) {
       if (isRegistered) loadUserData();
-      fetchBalance(); // NEW: Fetch balance
+      fetchBalance();
     }
   }, [contract, account, isRegistered]);
 
-  // NEW: Helper to fetch balance
   const fetchBalance = async () => {
     if (window.ethereum && account) {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -154,10 +161,20 @@ const ProfilePage = ({ account, contract, isRegistered, setIsRegistered, setUser
     if (!tempName) return alert("Enter a name!");
     setLoading(true);
     try {
+      // Check Network
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const network = await provider.getNetwork();
+      if (network.chainId !== 11155111) {
+        alert("Wrong Network! Please switch to Sepolia.");
+        setLoading(false);
+        return;
+      }
+
       const tx = await contract.registerUser(tempName);
       await tx.wait();
       setUserName(tempName);
       setIsRegistered(true);
+      alert("Identity Minted Successfully!");
     } catch (err) { alert("Registration Failed: " + (err.reason || err.message)); }
     setLoading(false);
   };
@@ -185,7 +202,6 @@ const ProfilePage = ({ account, contract, isRegistered, setIsRegistered, setUser
           <div>
             <h2>{userName}</h2>
             <span className="public-key">{account}</span>
-            {/* NEW: Balance Display */}
             <div className="wallet-balance-tag">Balance: {balance} ETH</div>
           </div>
         </div>
@@ -222,16 +238,16 @@ const DonatePage = ({ account, contract }) => {
   const [balance, setBalance] = useState("...");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (account && window.ethereum) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const bal = await provider.getBalance(account);
-        setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(4));
-      }
-    };
-    fetchBalance();
-  }, [account]);
+  // Refresh balance on load
+  const refreshBalance = async () => {
+    if (account && window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const bal = await provider.getBalance(account);
+      setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(4));
+    }
+  };
+
+  useEffect(() => { refreshBalance(); }, [account]);
 
   const handleDonate = async () => {
     if (!contract) return alert("Connect Wallet first!");
@@ -240,8 +256,9 @@ const DonatePage = ({ account, contract }) => {
       const tx = await contract.donate(receiver, { value: ethers.utils.parseEther(amount) });
       await tx.wait();
       alert("Donation Successful!");
-      setAmount(""); setReceiver(""); // Clear inputs
-      // Refresh balance logic here if needed
+      setAmount(""); 
+      setReceiver("");
+      refreshBalance(); // Update balance
     } catch (err) { alert("Error: " + (err.reason || err.message)); }
     setLoading(false);
   };
@@ -251,7 +268,7 @@ const DonatePage = ({ account, contract }) => {
       <div className="donate-box">
         <div className="balance-header">
           <span>Wallet Balance</span>
-          <h2>{balance} ETH</h2>
+          <h2 onClick={refreshBalance} style={{cursor: 'pointer'}} title="Click to refresh">{balance} ETH ↻</h2>
         </div>
         
         <div className="input-group">
@@ -316,6 +333,10 @@ const AboutPage = () => (
   <div className="about-container fade-in">
     <h1>About TrustChain</h1>
     <p>Empowering transparency in charity through Blockchain technology.</p>
+    <p style={{marginTop: '20px', color: '#636e72'}}>
+      Built for the TANTRA Hackathon.<br/>
+      Documentation available on GitHub.
+    </p>
   </div>
 );
 

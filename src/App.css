@@ -1,4 +1,3 @@
-/* src/App.css */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
 :root {
@@ -98,7 +97,7 @@ nav {
 .landing-donate-btn:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(255, 159, 67, 0.6); }
 
 /* Common Containers */
-.profile-container, .donate-box, .explorer-container {
+.profile-container, .donate-box, .explorer-container, .about-container {
   background: var(--card-bg);
   border-radius: 20px;
   box-shadow: var(--shadow);
