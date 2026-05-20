@@ -334,8 +334,7 @@ const AboutPage = () => (
     <h1>About TrustChain</h1>
     <p>Empowering transparency in charity through Blockchain technology.</p>
     <p style={{marginTop: '20px', color: '#636e72'}}>
-      Built for the TANTRA Hackathon.<br/>
-      Documentation available on GitHub.
+      Shreyas Patil - BSC24BCT111<br/>
     </p>
   </div>
 );
